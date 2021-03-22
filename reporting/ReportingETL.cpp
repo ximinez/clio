@@ -647,5 +647,7 @@ ReportingETL::ReportingETL(
         startSequence_ = config.at("start_sequence").as_int64();
     if (config.contains("read_only"))
         readOnly_ = config.at("read_only").as_bool();
+    if (config.contains("known_tip"))
+        networkValidatedLedgers_.push(config.at("known_tip").as_int64());
 }
 
