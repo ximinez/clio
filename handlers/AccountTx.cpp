@@ -137,12 +137,16 @@ doAccountTx(boost::json::object const& request, BackendInterface const& backend)
         return response;
     }
 
-    auto const account = ripple::parseBase58<ripple::AccountID>(
+    auto account = ripple::parseBase58<ripple::AccountID>(
         request.at("account").as_string().c_str());
     if (!account)
     {
-        response["error"] = "account malformed";
-        return response;
+        account = ripple::AccountID();
+        if (!account->parseHex(request.at("account").as_string().c_str()))
+        {
+            response["error"] = "account malformed";
+            return response;
+        }
     }
     auto ledgerSequence = ledgerSequenceFromRequest(request, backend);
     if (!ledgerSequence)
