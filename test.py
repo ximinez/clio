@@ -101,7 +101,25 @@ def getAccounts(filename):
         for line in f:
             if len(line) == 44:
                 accounts.append(line[3:43])
+            if len(line) == 41:
+                accounts.append(line[0:40])
     return accounts
+def getAccountsAndCursors(filename):
+    accounts = []
+    cursors = []
+    with open(filename) as f:
+        for line in f:
+            if len(line) == 0:
+                continue
+            space = line.find(" ")
+            cursor = line[space+1:len(line)-1]
+            if cursor == "None":
+                cursors.append(None)
+            else:
+                cursors.append(json.loads(cursor))
+            accounts.append(line[0:space])
+
+    return (accounts,cursors)
 def compareLedgerData(aldous, p2p):
     aldous[0].sort()
     aldous[1].sort()
@@ -190,9 +208,36 @@ async def account_tx(ip, port, account, binary, minLedger=None, maxLedger=None):
                 await ws.send(json.dumps({"command":"account_tx","account":account, "binary":bool(binary),"limit":200,"ledger_index_min":minLedger, "ledger_index_max":maxLedger}))
 
             res = json.loads(await ws.recv())
-            print(json.dumps(res,indent=4,sort_keys=True))
+            #print(json.dumps(res,indent=4,sort_keys=True))
             return res
     except websockets.exceptions.ConnectionClosedError as e:
+        print(e)
+async def account_txs_full(ip, port, accounts, cursors, numCalls):
+
+    address = 'ws://' + str(ip) + ':' + str(port)
+    random.seed()
+    try:
+        async with websockets.connect(address,max_size=1000000000) as ws:
+            print(len(accounts))
+            cursor = None
+            account = None
+            for x in range(0,numCalls):
+
+                idx = random.randrange(0,len(accounts))
+                account = accounts[idx]
+                cursor = cursors[idx]
+                start = datetime.datetime.now().timestamp()
+                if cursor is None:
+                    await ws.send(json.dumps({"command":"account_tx","account":account,"binary":True,"limit":200}))
+                else:
+                    await ws.send(json.dumps({"command":"account_tx","account":account,"cursor":cursor,"binary":True,"limit":200}))
+
+                res = json.loads(await ws.recv())
+                end = datetime.datetime.now().timestamp()
+                if (end - start) > 0.1:
+                    print("request took more than 100ms")
+
+    except websockets.exceptions.connectionclosederror as e:
         print(e)
 async def account_txs(ip, port, accounts, numCalls):
 
@@ -202,10 +247,14 @@ async def account_txs(ip, port, accounts, numCalls):
         async with websockets.connect(address,max_size=1000000000) as ws:
             print(len(accounts))
             for x in range(0,numCalls):
+
+                
                 account = accounts[random.randrange(0,len(accounts))]
                 start = datetime.datetime.now().timestamp()
                 await ws.send(json.dumps({"command":"account_tx","account":account,"binary":True,"limit":200}))
+
                 res = json.loads(await ws.recv())
+                    
                 end = datetime.datetime.now().timestamp()
                 if (end - start) > 0.1:
                     print("request took more than 100ms")
@@ -231,8 +280,14 @@ async def account_tx_full(ip, port, account, binary,minLedger=None, maxLedger=No
                 if minLedger is not None and maxLedger is not None:
                     req["ledger_index_min"] = minLedger
                     req["ledger_index_max"] = maxLedger
+                start = datetime.datetime.now().timestamp()
                 await ws.send(json.dumps(req))
-                res = json.loads(await ws.recv())
+                res = await ws.recv()
+                
+                end = datetime.datetime.now().timestamp()
+                
+                print(end - start)
+                res = json.loads(res)
                 #print(json.dumps(res,indent=4,sort_keys=True))
                 if "result" in res:
                     print(len(res["result"]["transactions"]))
@@ -569,7 +624,7 @@ async def ledger_range(ip, port):
 
 
 parser = argparse.ArgumentParser(description='test script for xrpl-reporting')
-parser.add_argument('action', choices=["account_info", "tx", "account_tx", "account_tx_full","ledger_data", "ledger_data_full", "book_offers","ledger","ledger_range","ledger_entry", "ledgers", "ledger_entries","account_txs","account_infos"])
+parser.add_argument('action', choices=["account_info", "tx", "account_tx", "account_tx_full","ledger_data", "ledger_data_full", "book_offers","ledger","ledger_range","ledger_entry", "ledgers", "ledger_entries","account_txs","account_infos","account_txs_full"])
 parser.add_argument('--ip', default='127.0.0.1')
 parser.add_argument('--port', default='8080')
 parser.add_argument('--hash')
@@ -654,6 +709,21 @@ def run(args):
             tasks = []
             for x in range(0,int(args.numRunners)):
                 tasks.append(asyncio.create_task(account_txs(args.ip, args.port,accounts, int(args.numCalls))))
+            for t in tasks:
+                await t
+
+        start = datetime.datetime.now().timestamp()
+        asyncio.run(runner())
+        end = datetime.datetime.now().timestamp()
+        num = int(args.numRunners) * int(args.numCalls)
+        print("Completed " + str(num) + " in " + str(end - start) + " seconds. Throughput = " + str(num / (end - start)) + " calls per second")
+    elif args.action == "account_txs_full":
+        accounts,cursors = getAccountsAndCursors(args.filename)
+        async def runner():
+
+            tasks = []
+            for x in range(0,int(args.numRunners)):
+                tasks.append(asyncio.create_task(account_txs_full(args.ip, args.port,accounts,cursors,int(args.numCalls))))
             for t in tasks:
                 await t
 
