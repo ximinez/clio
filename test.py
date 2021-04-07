@@ -103,6 +103,8 @@ def getAccounts(filename):
                 accounts.append(line[3:43])
             if len(line) == 41:
                 accounts.append(line[0:40])
+            elif len(line) == 43:
+                accounts.append(line[2:42])
     return accounts
 def getAccountsAndCursors(filename):
     accounts = []
@@ -120,6 +122,13 @@ def getAccountsAndCursors(filename):
             accounts.append(line[0:space])
 
     return (accounts,cursors)
+def getBooks(filename):
+    books = []
+    with open(filename) as f:
+        for line in f:
+            if len(line) == 68:
+                books.append(line[3:67])
+    return books
 def compareLedgerData(aldous, p2p):
     aldous[0].sort()
     aldous[1].sort()
@@ -476,6 +485,25 @@ def compare_book_offers(aldous, p2p):
     return True
                     
         
+async def book_offerses(ip, port, ledger, books, numCalls):
+    address = 'ws://' + str(ip) + ':' + str(port)
+    random.seed()
+    try:
+        async with websockets.connect(address,max_size=1000000000) as ws:
+            print(len(books))
+            for x in range(0,numCalls):
+                book = books[random.randrange(0,len(books))]
+                start = datetime.datetime.now().timestamp()
+                await ws.send(json.dumps({"command":"book_offers","book":book,"binary":True}))
+                res = json.loads(await ws.recv())
+                end = datetime.datetime.now().timestamp()
+                print(book)
+                print(len(res["offers"]))
+                if (end - start) > 0.1:
+                    print("request took more than 100ms")
+
+    except websockets.exceptions.connectionclosederror as e:
+        print(e)
 
 async def book_offers(ip, port, ledger, pay_currency, pay_issuer, get_currency, get_issuer, binary):
 
@@ -624,7 +652,8 @@ async def ledger_range(ip, port):
 
 
 parser = argparse.ArgumentParser(description='test script for xrpl-reporting')
-parser.add_argument('action', choices=["account_info", "tx", "account_tx", "account_tx_full","ledger_data", "ledger_data_full", "book_offers","ledger","ledger_range","ledger_entry", "ledgers", "ledger_entries","account_txs","account_infos","account_txs_full"])
+parser.add_argument('action', choices=["account_info", "tx", "account_tx", "account_tx_full","ledger_data", "ledger_data_full", "book_offers","ledger","ledger_range","ledger_entry", "ledgers", "ledger_entries","account_txs","account_infos","account_txs_full","book_offerses"])
+
 parser.add_argument('--ip', default='127.0.0.1')
 parser.add_argument('--port', default='8080')
 parser.add_argument('--hash')
@@ -748,6 +777,21 @@ def run(args):
         num = int(args.numRunners) * int(args.numCalls)
         print("Completed " + str(num) + " in " + str(end - start) + " seconds. Throughput = " + str(num / (end - start)) + " calls per second")
     
+    elif args.action == "book_offerses":
+        books = getBooks(args.filename)
+        async def runner():
+
+            tasks = []
+            for x in range(0,int(args.numRunners)):
+                tasks.append(asyncio.create_task(book_offerses(args.ip, args.port,int(args.ledger),books, int(args.numCalls))))
+            for t in tasks:
+                await t
+
+        start = datetime.datetime.now().timestamp()
+        asyncio.run(runner())
+        end = datetime.datetime.now().timestamp()
+        num = int(args.numRunners) * int(args.numCalls)
+        print("Completed " + str(num) + " in " + str(end - start) + " seconds. Throughput = " + str(num / (end - start)) + " calls per second")
     elif args.action == "ledger_entry":
         asyncio.get_event_loop().run_until_complete(
                 ledger_entry(args.ip, args.port, args.index, args.ledger, args.binary))
