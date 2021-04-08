@@ -33,6 +33,7 @@ def parseLogs(filename, interval):
         intervalStart = 0
         intervalEnd = 0
         intervalLedgers = 0
+        ledgersPerSecond = 0
 
         for line in f:
             if "Load phase" in line:
@@ -71,8 +72,6 @@ def parseLogs(filename, interval):
 
                 prevEnd = end
                 end = getTime(line)
-                if end - prevEnd > 3 and prevEnd != 0:
-                    print("Caught up!")
 
                 if intervalStart == 0:
                     intervalStart = getTime(line)
@@ -120,6 +119,15 @@ def parseLogs(filename, interval):
                         intervalEnd = 0
                         intervalLedgers = 0
                         intervalLoadTime = 0
+        print("Total Aggregate: [ledgers, elapsedTime, ledgersPerSec, avgLoadTime, txPerSec, objsPerSec]")
+        print(totalLedgers)
+        print(totalLoadTime)
+        print(str(totalLedgers) + " : " 
+            + str(end-start) + " : " 
+            + str(ledgersPerSecond) + " : " 
+            + str(totalLoadTime/totalLedgers) + " : " 
+            + str(totalTxns/totalTime) + " : " 
+            + str(totalObjs/totalTime))
 
 
     
