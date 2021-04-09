@@ -408,12 +408,12 @@ def writeLedgerData(data,filename):
             f.write('\n')
 
 
-async def ledger_data_full(ip, port, ledger, binary, limit):
+async def ledger_data_full(ip, port, ledger, binary, limit, typ=None, count=-1):
     address = 'ws://' + str(ip) + ':' + str(port)
     try:
         blobs = []
         keys = []
-        async with websockets.connect(address) as ws:
+        async with websockets.connect(address,max_size=1000000000) as ws:
             if int(limit) < 2048:
                 limit = 2048
             marker = None
@@ -427,6 +427,7 @@ async def ledger_data_full(ip, port, ledger, binary, limit):
 
                     await ws.send(json.dumps({"command":"ledger_data","ledger_index":int(ledger),"cursor":marker, "marker":marker,"binary":bool(binary), "limit":int(limit)}))
                     res = json.loads(await ws.recv())
+                
                     
                 if "error" in res:
                     print(res)
@@ -438,8 +439,23 @@ async def ledger_data_full(ip, port, ledger, binary, limit):
                 else:
                     objects = res["objects"]
                 for x in objects:
-                    blobs.append(x["data"])
-                    keys.append(x["index"])
+                    if binary:
+                        if typ is None or x["data"][2:6] == typ:
+                            print(json.dumps(x,indent=4,sort_keys=True))
+                            print("******")
+                            blobs.append(x["data"])
+                            keys.append(x["index"])
+                    else:
+                        if typ is None or x["LedgerEntryType"] == typ:
+                            print(json.dumps(x,indent=4,sort_keys=True))
+                            print("********")
+                            blobs.append(x)
+                            keys.append(x["index"])
+                if limit != -1 and len(keys) > count:
+                    print("stopping early")
+                    print(len(keys))
+                    print("done")
+                    return (keys,blobs)
                 if "cursor" in res:
                     marker = res["cursor"]
                     print(marker)
@@ -674,9 +690,11 @@ parser.add_argument('--minLedger',default=-1)
 parser.add_argument('--maxLedger',default=-1)
 parser.add_argument('--filename',default=None)
 parser.add_argument('--index')
+parser.add_argument('--type',default=None)
 parser.add_argument('--cursor',default='0000000000000000000000000000000000000000000000000000000000000000')
 parser.add_argument('--numCalls',default=10000)
 parser.add_argument('--numRunners',default=1)
+parser.add_argument('--count',default=-1)
 
 
 
@@ -853,7 +871,8 @@ def run(args):
                 args.filename = str(args.port) + "." + str(args.ledger)
 
         res = asyncio.get_event_loop().run_until_complete(
-                ledger_data_full(args.ip, args.port, args.ledger, args.binary, args.limit))
+                ledger_data_full(args.ip, args.port, args.ledger, bool(args.binary), args.limit,args.type, int(args.count)))
+        print(len(res[0]))
         if args.verify:
             writeLedgerData(res,args.filename)
 
