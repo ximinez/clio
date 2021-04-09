@@ -250,6 +250,8 @@ async def account_txs_full(ip, port, accounts, cursors, numCalls):
 
                 res = json.loads(await ws.recv())
                 end = datetime.datetime.now().timestamp()
+                print(end-start)
+                print(len(res["transactions"]))
                 if (end - start) > 0.1:
                     print("request took more than 100ms")
 
@@ -357,11 +359,9 @@ async def txs(ip, port, hashes, numCalls):
             for x in range(0,numCalls):
                 h = hashes[random.randrange(0,len(hashes))]
                 start = datetime.datetime.now().timestamp()
-                await ws.send(json.dumps({"command":"tx","transaction":h,"binary":bool(binary)}))
+                await ws.send(json.dumps({"command":"tx","transaction":h,"binary":True}))
                 res = json.loads(await ws.recv())
                 end = datetime.datetime.now().timestamp()
-                print(res)
-                print(end - start)
                 if (end - start) > 0.1:
                     print("request took more than 100ms")
     except websockets.exceptions.connectionclosederror as e:
@@ -611,7 +611,6 @@ def compareLedger(aldous, p2p):
 
 
 def getHashes(res):
-    print(json.dumps(res,indent=4,sort_keys=True))
     if "result" in res:
         res = res["result"]["ledger"]
 
@@ -653,6 +652,17 @@ async def ledgers(ip, port, minLedger, maxLedger, transactions, expand, maxCalls
         print(e)
         print(ledger)
 
+async def getManyHashes(ip, port, minLedger,maxLedger):
+
+    hashes = []
+    for x in range(minLedger,maxLedger):
+        res = await ledger(ip, port, x,True, True, False)
+        hashes.extend(getHashes(res))
+    print(len(hashes))
+    return hashes
+
+
+
 async def ledger(ip, port, ledger, binary, transactions, expand):
 
     address = 'ws://' + str(ip) + ':' + str(port)
@@ -660,8 +670,7 @@ async def ledger(ip, port, ledger, binary, transactions, expand):
         async with websockets.connect(address,max_size=1000000000) as ws:
             await ws.send(json.dumps({"command":"ledger","ledger_index":int(ledger),"binary":bool(binary), "transactions":bool(transactions),"expand":bool(expand)}))
             res = json.loads(await ws.recv())
-            print(json.dumps(res,indent=4,sort_keys=True))
-            print(bool(binary))
+            #print(json.dumps(res,indent=4,sort_keys=True))
             return res
 
     except websockets.exceptions.connectionclosederror as e:
@@ -687,7 +696,7 @@ async def ledger_range(ip, port):
 
 
 parser = argparse.ArgumentParser(description='test script for xrpl-reporting')
-parser.add_argument('action', choices=["account_info", "tx", "account_tx", "account_tx_full","ledger_data", "ledger_data_full", "book_offers","ledger","ledger_range","ledger_entry", "ledgers", "ledger_entries","account_txs","account_infos","account_txs_full","book_offerses"])
+parser.add_argument('action', choices=["account_info", "tx", "txs","account_tx", "account_tx_full","ledger_data", "ledger_data_full", "book_offers","ledger","ledger_range","ledger_entry", "ledgers", "ledger_entries","account_txs","account_infos","account_txs_full","book_offerses"])
 
 parser.add_argument('--ip', default='127.0.0.1')
 parser.add_argument('--port', default='8080')
@@ -731,6 +740,21 @@ def run(args):
             res2 = asyncio.get_event_loop().run_until_complete(
                     account_info(args.p2pIp, args.p2pPort, args.account, args.ledger, args.binary))
             print(compareAccountInfo(res1,res2))
+    elif args.action == "txs":
+        hashes = asyncio.get_event_loop().run_until_complete(getManyHashes(args.ip,args.port, int(args.minLedger),int(args.maxLedger)))
+        async def runner():
+
+            tasks = []
+            for x in range(0,int(args.numRunners)):
+                tasks.append(asyncio.create_task(txs(args.ip, args.port, hashes,int(args.numCalls))))
+            for t in tasks:
+                await t
+
+        start = datetime.datetime.now().timestamp()
+        asyncio.run(runner())
+        end = datetime.datetime.now().timestamp()
+        num = int(args.numRunners) * int(args.numCalls)
+        print("Completed " + str(num) + " in " + str(end - start) + " seconds. Throughput = " + str(num / (end - start)) + " calls per second")
     elif args.action == "ledgers":
         async def runner():
 
