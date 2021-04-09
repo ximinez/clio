@@ -99,9 +99,16 @@ def getAccounts(filename):
     accounts = []
     with open(filename) as f:
         for line in f:
+            if line[0] == "{":
+                jv = json.loads(line)
+                accounts.append(jv["Account"])
+            if len(line) == 35:
+                accounts.append(line[0:34])
             if len(line) == 44:
                 accounts.append(line[3:43])
-            if len(line) == 41:
+            if len(line) == 65:
+                accounts.append(line[0:64])
+            if len(line) == 41 or len(line) == 40:
                 accounts.append(line[0:40])
             elif len(line) == 43:
                 accounts.append(line[2:42])
@@ -255,14 +262,29 @@ async def account_txs(ip, port, accounts, numCalls):
     try:
         async with websockets.connect(address,max_size=1000000000) as ws:
             print(len(accounts))
+            cursor = None
+            account = None
             for x in range(0,numCalls):
 
-                
-                account = accounts[random.randrange(0,len(accounts))]
-                start = datetime.datetime.now().timestamp()
-                await ws.send(json.dumps({"command":"account_tx","account":account,"binary":True,"limit":200}))
+                if cursor is None:
+                    account = accounts[random.randrange(0,len(accounts))]
+                    start = datetime.datetime.now().timestamp()
+                    await ws.send(json.dumps({"command":"account_tx","account":account,"binary":True,"limit":200}))
+                else:
+                    await ws.send(json.dumps({"command":"account_tx","account":account,"cursor":cursor,"binary":True,"limit":200}))
+
 
                 res = json.loads(await ws.recv())
+                if "cursor" in res:
+                    if cursor:
+                        print(account + " " + json.dumps(cursor))
+                    else:
+                        print(account + " " + "None")
+                    cursor = res["cursor"]
+                elif cursor:
+                    print(account + " " + json.dumps(cursor))
+                    cursor = None
+
                     
                 end = datetime.datetime.now().timestamp()
                 if (end - start) > 0.1:
@@ -441,14 +463,12 @@ async def ledger_data_full(ip, port, ledger, binary, limit, typ=None, count=-1):
                 for x in objects:
                     if binary:
                         if typ is None or x["data"][2:6] == typ:
-                            print(json.dumps(x,indent=4,sort_keys=True))
-                            print("******")
+                            print(json.dumps(x))
                             blobs.append(x["data"])
                             keys.append(x["index"])
                     else:
                         if typ is None or x["LedgerEntryType"] == typ:
-                            print(json.dumps(x,indent=4,sort_keys=True))
-                            print("********")
+                            print(json.dumps(x))
                             blobs.append(x)
                             keys.append(x["index"])
                 if limit != -1 and len(keys) > count:
@@ -458,7 +478,6 @@ async def ledger_data_full(ip, port, ledger, binary, limit, typ=None, count=-1):
                     return (keys,blobs)
                 if "cursor" in res:
                     marker = res["cursor"]
-                    print(marker)
                 elif "result" in res and "marker" in res["result"]:
                     marker = res["result"]["marker"]
                     print(marker)
