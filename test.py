@@ -282,7 +282,7 @@ async def account_txs(ip, port, accounts, numCalls):
                         print(account + " " + json.dumps(cursor))
                     else:
                         print(account + " " + "None")
-                    cursor = res["cursor"]
+                    #cursor = res["cursor"]
                 elif cursor:
                     print(account + " " + json.dumps(cursor))
                     cursor = None
