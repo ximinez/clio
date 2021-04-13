@@ -35,6 +35,7 @@ def parseLogs(filename, interval):
         intervalLedgers = 0
         ledgersPerSecond = 0
 
+        print("ledgers, transactions, objects, loadTime, loadTime/ledger, ledgers/sec, txns/sec, objs/sec")
         for line in f:
             if "Load phase" in line:
                 sequenceIdx = line.find("Sequence : ")
@@ -91,26 +92,30 @@ def parseLogs(filename, interval):
 
                 if int(sequence) % interval == 0:
 
-                    print("Sequence = " + sequence + " : [time, txCount, objCount, txPerSec, objsPerSec]")
-                    print(loadTime + " : " 
-                        + txnCount + " : " 
-                        + objCount + " : " 
-                        + txnsPerSecond + " : " 
-                        + objsPerSecond)
-                    print("Interval Aggregate ( " + str(interval) + " ) [ledgers, elapsedTime, ledgersPerSec, avgLoadTime, txPerSec, objsPerSec]: ")
-                    print(str(intervalLedgers) + " : " 
-                        + str(intervalEnd - intervalStart) + " : " 
-                        + str(intervalLedgersPerSecond) + " : " 
-                        + str(intervalLoadTime/intervalLedgers) + " : " 
-                        + str(intervalTxns/intervalTime) + " : " 
-                        + str(intervalObjs/intervalTime))
-                    print("Total Aggregate: [ledgers, elapsedTime, ledgersPerSec, avgLoadTime, txPerSec, objsPerSec]")
-                    print(str(totalLedgers) + " : " 
-                        + str(end-start) + " : " 
-                        + str(ledgersPerSecond) + " : " 
-                        + str(totalLoadTime/totalLedgers) + " : " 
-                        + str(totalTxns/totalTime) + " : " 
-                        + str(totalObjs/totalTime))
+                   # print("Sequence = " + sequence + " : [time, txCount, objCount, txPerSec, objsPerSec]")
+                   # print(loadTime + " , " 
+                   #     + txnCount + " , " 
+                   #     + objCount + " , " 
+                   #     + txnsPerSecond + " , " 
+                   #     + objsPerSecond)
+                   # print("Interval Aggregate ( " + str(interval) + " ) [ledgers, txns, objects, elapsedTime, ledgersPerSec, avgLoadTime, txPerSec, objsPerSec]: ")
+                    print(str(intervalLedgers) + " , " 
+                        + str(intervalTxns) + " , "
+                        + str(intervalObjs) + " , "
+                        + str(intervalLoadTime) + " , " 
+                        + str(intervalLoadTime/intervalLedgers) + " , " 
+                        + str(intervalLedgersPerSecond) + " , " 
+                        + str(intervalTxns/intervalLoadTime) + " , " 
+                        + str(intervalObjs/intervalLoadTime))
+                  #  print("Total Aggregate: [ledgers, txns, objects, elapsedTime, ledgersPerSec, avgLoadTime, txPerSec, objsPerSec]")
+                  #  print(str(totalLedgers) + " , " 
+                  #      + str(totalTxns) + " , "
+                  #      + str(totalObjs) + " , "
+                  #      + str(end-start) + " , " 
+                  #      + str(ledgersPerSecond) + " , " 
+                  #      + str(totalLoadTime/totalLedgers) + " , " 
+                  #      + str(totalTxns/totalTime) + " , " 
+                  #      + str(totalObjs/totalTime))
                     if int(sequence) % interval == 0:
                         intervalTime = 0
                         intervalTxns = 0

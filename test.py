@@ -246,12 +246,20 @@ async def account_txs_full(ip, port, accounts, cursors, numCalls):
                 if cursor is None:
                     await ws.send(json.dumps({"command":"account_tx","account":account,"binary":True,"limit":200}))
                 else:
-                    await ws.send(json.dumps({"command":"account_tx","account":account,"cursor":cursor,"binary":True,"limit":200}))
+                    marker = {}
+                    marker["ledger"] = cursor["ledger_sequence"]
+                    marker["seq"] = cursor["transaction_index"]
+                    await ws.send(json.dumps({"command":"account_tx","account":account,"cursor":cursor,"marker":marker,"binary":True,"limit":200,"forward":False}))
 
                 res = json.loads(await ws.recv())
                 end = datetime.datetime.now().timestamp()
                 print(end-start)
-                print(len(res["transactions"]))
+                txns = []
+                if "result" in res:
+                    txns = res["result"]["transactions"]
+                else:
+                    txns = res["transactions"]
+                print(len(txns))
                 if (end - start) > 0.1:
                     print("request took more than 100ms")
 
@@ -609,6 +617,14 @@ def compareLedger(aldous, p2p):
         print(aldous)
         print(p2p)
 
+def getHashesFromFile(filename):
+    hashes = []
+    with open(filename) as f:
+        for line in f:
+            if len(line) == 65:
+                hashes.append(line[0:64])
+    return hashes
+
 
 def getHashes(res):
     if "result" in res:
@@ -657,6 +673,17 @@ async def getManyHashes(ip, port, minLedger,maxLedger):
     hashes = []
     for x in range(minLedger,maxLedger):
         res = await ledger(ip, port, x,True, True, False)
+        hashes.extend(getHashes(res))
+    print(len(hashes))
+    return hashes
+async def getManyHashes(ip, port, minLedger,maxLedger, numHashes):
+
+    random.seed()
+    hashes = []
+    while len(hashes) < numHashes:
+
+        lgr = random.randrange(minLedger,maxLedger)
+        res = await ledger(ip, port, lgr,True, True, False)
         hashes.extend(getHashes(res))
     print(len(hashes))
     return hashes
@@ -741,7 +768,11 @@ def run(args):
                     account_info(args.p2pIp, args.p2pPort, args.account, args.ledger, args.binary))
             print(compareAccountInfo(res1,res2))
     elif args.action == "txs":
-        hashes = asyncio.get_event_loop().run_until_complete(getManyHashes(args.ip,args.port, int(args.minLedger),int(args.maxLedger)))
+        #hashes = asyncio.get_event_loop().run_until_complete(getManyHashes(args.ip,args.port, int(args.minLedger),int(args.maxLedger), int(args.numCalls)))
+        #for x in hashes:
+        #    print(x)
+        #return
+        hashes = getHashesFromFile(args.filename)
         async def runner():
 
             tasks = []
