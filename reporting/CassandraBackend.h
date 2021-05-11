@@ -166,6 +166,11 @@ public:
         bindBytes(data.data(), data.size());
     }
     void
+    bindBytes(std::vector<unsigned char> const& data)
+    {
+        bindBytes(data.data(), data.size());
+    }
+    void
     bindBytes(ripple::AccountID const& data)
     {
         bindBytes(data.data(), data.size());
@@ -620,6 +625,7 @@ private:
     CassandraPreparedStatement insertLedgerHeader_;
     CassandraPreparedStatement insertLedgerHash_;
     CassandraPreparedStatement updateLedgerRange_;
+    CassandraPreparedStatement deleteLedgerRange_;
     CassandraPreparedStatement updateLedgerHeader_;
     CassandraPreparedStatement selectLedgerBySeq_;
     CassandraPreparedStatement selectLatestLedger_;
@@ -705,6 +711,11 @@ public:
     getInsertBookPreparedStatement() const
     {
         return insertBook2_;
+    }
+    CassandraPreparedStatement const&
+    getInsertObjectPreparedStatement() const
+    {
+        return insertObject_;
     }
 
     CassandraPreparedStatement const&
@@ -1369,7 +1380,7 @@ public:
         syncCv_.wait(lck, [this]() { return finishedAllRequests(); });
     }
     bool
-    doOnlineDelete(uint32_t minLedgerToKeep) const override;
+    doOnlineDelete(uint32_t numLedgersToKeep) const override;
 
     boost::asio::io_context&
     getIOContext() const
