@@ -335,7 +335,8 @@ PostgresBackend::fetchLedgerPage(
     PgQuery pgQuery(pgPool_);
     pgQuery("SET statement_timeout TO 10000");
     std::stringstream sql;
-    sql << "SELECT key FROM keys WHERE ledger_seq = " << std::to_string(*index);
+    sql << "SELECT key FROM keys WHERE ledger_seq = "
+        << std::to_string(index->keyIndex);
     if (cursor)
         sql << " AND key > \'\\x" << ripple::strHex(*cursor) << "\'";
     sql << " ORDER BY key ASC LIMIT " << std::to_string(limit);
@@ -388,7 +389,7 @@ PostgresBackend::fetchBookOffers(
         std::stringstream sql;
         sql << "SELECT offer_key FROM books WHERE book = "
             << "\'\\x" << ripple::strHex(zero)
-            << "\' AND ledger_seq = " << std::to_string(*index);
+            << "\' AND ledger_seq = " << std::to_string(index->bookIndex);
         auto res = pgQuery(sql.str().data());
         sql << " ORDER BY offer_key ASC"
             << " LIMIT " << std::to_string(limit);
@@ -405,7 +406,7 @@ PostgresBackend::fetchBookOffers(
     std::stringstream sql;
     sql << "SELECT offer_key FROM books WHERE book = "
         << "\'\\x" << ripple::strHex(book)
-        << "\' AND ledger_seq = " << std::to_string(*index);
+        << "\' AND ledger_seq = " << std::to_string(index->bookIndex);
     if (cursor)
         sql << " AND offer_key > \'\\x" << ripple::strHex(*cursor) << "\'";
     sql << " ORDER BY offer_key ASC"
@@ -717,7 +718,7 @@ PostgresBackend::doFinishWrites() const
 bool
 PostgresBackend::writeKeys(
     std::unordered_set<ripple::uint256> const& keys,
-    uint32_t ledgerSequence,
+    KeyIndex const& index,
     bool isAsync) const
 {
     BOOST_LOG_TRIVIAL(debug) << __func__;
@@ -727,7 +728,7 @@ PostgresBackend::writeKeys(
     size_t numRows = 0;
     for (auto& key : keys)
     {
-        keysBuffer << std::to_string(ledgerSequence) << '\t' << "\\\\x"
+        keysBuffer << std::to_string(index.keyIndex) << '\t' << "\\\\x"
                    << ripple::strHex(key) << '\n';
         numRows++;
         // If the buffer gets too large, the insert fails. Not sure why. So we
@@ -752,7 +753,7 @@ PostgresBackend::writeBooks(
     std::unordered_map<
         ripple::uint256,
         std::unordered_set<ripple::uint256>> const& books,
-    uint32_t ledgerSequence,
+    BookIndex const& index,
     bool isAsync) const
 {
     BOOST_LOG_TRIVIAL(debug) << __func__;
@@ -764,7 +765,7 @@ PostgresBackend::writeBooks(
     {
         for (auto& offer : book.second)
         {
-            booksBuffer << std::to_string(ledgerSequence) << '\t' << "\\\\x"
+            booksBuffer << std::to_string(index.bookIndex) << '\t' << "\\\\x"
                         << ripple::strHex(book.first) << '\t' << "\\\\x"
                         << ripple::strHex(offer) << '\n';
             numRows++;

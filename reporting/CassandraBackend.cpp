@@ -405,12 +405,12 @@ CassandraBackend::fetchLedgerPage(
     LedgerPage page;
     BOOST_LOG_TRIVIAL(debug)
         << __func__ << " ledgerSequence = " << std::to_string(ledgerSequence)
-        << " index = " << std::to_string(*index);
+        << " index = " << std::to_string(index->keyIndex);
     if (cursor)
         BOOST_LOG_TRIVIAL(debug)
             << __func__ << " - Cursor = " << ripple::strHex(*cursor);
     CassandraStatement statement{selectKeys_};
-    statement.bindInt(*index);
+    statement.bindInt(index->keyIndex);
     if (cursor)
         statement.bindBytes(*cursor);
     else
@@ -504,14 +504,15 @@ CassandraBackend::fetchBookOffers(
     auto index = getBookIndexOfSeq(sequence);
     if (!index)
         return {};
-    BOOST_LOG_TRIVIAL(info) << __func__ << " index = " << std::to_string(*index)
-                            << " book = " << ripple::strHex(book);
+    BOOST_LOG_TRIVIAL(info)
+        << __func__ << " index = " << std::to_string(index->bookIndex)
+        << " book = " << ripple::strHex(book);
     BookOffersPage page;
     ripple::uint256 zero = {};
     {
         CassandraStatement statement{selectBook_};
         statement.bindBytes(zero);
-        statement.bindInt(*index);
+        statement.bindInt(index->bookIndex);
         statement.bindBytes(zero);
         statement.bindUInt(1);
         CassandraResult result = executeSyncRead(statement);
@@ -526,7 +527,7 @@ CassandraBackend::fetchBookOffers(
     }
     CassandraStatement statement{selectBook_};
     statement.bindBytes(book);
-    statement.bindInt(*index);
+    statement.bindInt(index->bookIndex);
     if (cursor)
         statement.bindBytes(*cursor);
     else
@@ -721,14 +722,9 @@ writeKeyCallback(CassFuture* fut, void* cbData)
 bool
 CassandraBackend::writeKeys(
     std::unordered_set<ripple::uint256> const& keys,
-    uint32_t ledgerSequence,
+    KeyIndex const& index,
     bool isAsync) const
 {
-    BOOST_LOG_TRIVIAL(info)
-        << __func__ << " Ledger = " << std::to_string(ledgerSequence)
-        << " . num keys = " << std::to_string(keys.size())
-        << " . concurrentLimit = "
-        << std::to_string(indexerMaxRequestsOutstanding);
     std::atomic_uint32_t numRemaining = keys.size();
     std::condition_variable cv;
     std::mutex mtx;
@@ -736,11 +732,16 @@ CassandraBackend::writeKeys(
     cbs.reserve(keys.size());
     uint32_t concurrentLimit =
         isAsync ? indexerMaxRequestsOutstanding : keys.size();
+    BOOST_LOG_TRIVIAL(info)
+        << __func__ << " Ledger = " << std::to_string(index.keyIndex)
+        << " . num keys = " << std::to_string(keys.size())
+        << " . concurrentLimit = "
+        << std::to_string(indexerMaxRequestsOutstanding);
     uint32_t numSubmitted = 0;
     for (auto& key : keys)
     {
         cbs.push_back(std::make_shared<WriteKeyCallbackData>(
-            *this, key, ledgerSequence, cv, mtx, numRemaining));
+            *this, key, index.keyIndex, cv, mtx, numRemaining));
         writeKey(*cbs.back());
         ++numSubmitted;
         BOOST_LOG_TRIVIAL(trace) << __func__ << "Submitted a write request";
@@ -774,11 +775,11 @@ CassandraBackend::writeBooks(
     std::unordered_map<
         ripple::uint256,
         std::unordered_set<ripple::uint256>> const& books,
-    uint32_t ledgerSequence,
+    BookIndex const& index,
     bool isAsync) const
 {
     BOOST_LOG_TRIVIAL(info)
-        << __func__ << " Ledger = " << std::to_string(ledgerSequence)
+        << __func__ << " Ledger = " << std::to_string(index.bookIndex)
         << " . num books = " << std::to_string(books.size());
     std::condition_variable cv;
     std::mutex mtx;
@@ -798,7 +799,7 @@ CassandraBackend::writeBooks(
                 *this,
                 book.first,
                 offer,
-                ledgerSequence,
+                index.bookIndex,
                 cv,
                 mtx,
                 numOutstanding));
@@ -1046,7 +1047,7 @@ CassandraBackend::runIndexer(uint32_t ledgerSequence) const
 */
 }
 bool
-CassandraBackend::doOnlineDelete(uint32_t minLedgerToKeep) const
+CassandraBackend::doOnlineDelete(uint32_t numLedgersToKeep) const
 {
     throw std::runtime_error("doOnlineDelete : unimplemented");
     return false;

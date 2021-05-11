@@ -105,8 +105,8 @@ writeKeyFlagLedger(
     }
     auto start = std::chrono::system_clock::now();
 
-    backend.writeKeys(keys, nextFlag, true);
-    backend.writeKeys({zero}, nextFlag, true);
+    backend.writeKeys(keys, KeyIndex{nextFlag}, true);
+    backend.writeKeys({zero}, KeyIndex{nextFlag}, true);
     auto end = std::chrono::system_clock::now();
     BOOST_LOG_TRIVIAL(info)
         << __func__
@@ -156,8 +156,8 @@ writeBookFlagLedger(
         }
     }
     auto start = std::chrono::system_clock::now();
-    backend.writeBooks(books, nextFlag, true);
-    backend.writeBooks({{zero, {zero}}}, nextFlag, true);
+    backend.writeBooks(books, BookIndex{nextFlag}, true);
+    backend.writeBooks({{zero, {zero}}}, BookIndex{nextFlag}, true);
 
     auto end = std::chrono::system_clock::now();
     BOOST_LOG_TRIVIAL(info)
@@ -447,23 +447,23 @@ BackendIndexer::finish(uint32_t ledgerSequence, BackendInterface const& backend)
         << __func__
         << " starting. sequence = " << std::to_string(ledgerSequence);
     bool isFirst = false;
-    uint32_t keyIndex = getKeyIndexOfSeq(ledgerSequence);
-    uint32_t bookIndex = getKeyIndexOfSeq(ledgerSequence);
+    auto keyIndex = getKeyIndexOfSeq(ledgerSequence);
+    auto bookIndex = getBookIndexOfSeq(ledgerSequence);
     auto rng = backend.fetchLedgerRangeNoThrow();
     if (!rng || rng->minSequence == ledgerSequence)
     {
         isFirst = true;
-        keyIndex = bookIndex = ledgerSequence;
+        keyIndex = KeyIndex{ledgerSequence};
+        bookIndex = BookIndex{ledgerSequence};
     }
     backend.writeKeys(keys, keyIndex);
     backend.writeBooks(books, bookIndex);
     if (isFirst)
     {
+        // write completion record
         ripple::uint256 zero = {};
-        backend.writeBooks({{zero, {zero}}}, ledgerSequence);
-        backend.writeKeys({zero}, ledgerSequence);
-        writeBookFlagLedgerAsync(ledgerSequence, backend);
-        writeKeyFlagLedgerAsync(ledgerSequence, backend);
+        backend.writeBooks({{zero, {zero}}}, bookIndex);
+        backend.writeKeys({zero}, keyIndex);
     }
     keys = {};
     books = {};
