@@ -1304,6 +1304,16 @@ CassandraBackend::open(bool readOnly)
         ? config_["threads"].as_int64()
         : std::thread::hardware_concurrency();
     int ttl = config_.contains("ttl") ? config_["ttl"].as_int64() * 2 : 0;
+    int keysTtl, keysIncr = pow(2, indexer_.getKeyShift()) * 4 * 2;
+    while (keysTtl < ttl)
+    {
+        keysTtl += keysIncr;
+    }
+    int booksTtl, booksIncr = pow(2, indexer_.getBookShift()) * 4 * 2;
+    while (booksTtl < ttl)
+    {
+        booksTtl += booksIncr;
+    }
 
     rc = cass_cluster_set_num_threads_io(cluster, threads);
     if (rc != CASS_OK)
@@ -1475,7 +1485,9 @@ CassandraBackend::open(bool readOnly)
         query = {};
         query << "CREATE TABLE IF NOT EXISTS " << tablePrefix << "keys"
               << " ( sequence bigint, key blob, PRIMARY KEY "
-                 "(sequence, key))";
+                 "(sequence, key))"
+                 " WITH default_time_to_live = "
+              << keysTtl;
         if (!executeSimpleStatement(query.str()))
             continue;
 
@@ -1500,7 +1512,9 @@ CassandraBackend::open(bool readOnly)
         query << "CREATE TABLE IF NOT EXISTS " << tablePrefix << "books2"
               << " ( book blob, sequence bigint, key blob, PRIMARY KEY "
                  "((book, sequence), key)) WITH CLUSTERING ORDER BY (key "
-                 "ASC)";
+                 "ASC)"
+                 " WITH default_time_to_live = "
+              << booksTtl;
         if (!executeSimpleStatement(query.str()))
             continue;
         query = {};
