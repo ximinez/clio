@@ -125,7 +125,29 @@ ReportingETL::loadInitialLedger(uint32_t startingSequence)
     // data and pushes the downloaded data into the writeQueue. asyncWriter
     // consumes from the queue and inserts the data into the Ledger object.
     // Once the below call returns, all data has been pushed into the queue
-    loadBalancer_.loadInitialLedger(startingSequence);
+    loadBalancer_.loadInitialLedger(
+        startingSequence, [this, startingSequence](auto& obj) {
+            std::optional<ripple::uint256> book;
+
+            short offer_bytes = (obj.data()[1] << 8) | obj.data()[2];
+            if (offer_bytes == 0x006f)
+            {
+                ripple::SerialIter it{obj.data().data(), obj.data().size()};
+                ripple::SLE sle{it, {}};
+                book = sle.getFieldH256(ripple::sfBookDirectory);
+                for (size_t i = 0; i < 8; ++i)
+                {
+                    book->data()[book->size() - 1 - i] = 0x00;
+                }
+            }
+            flatMapBackend_->writeLedgerObject(
+                std::move(*obj.mutable_key()),
+                startingSequence,
+                std::move(*obj.mutable_data()),
+                true,
+                false,
+                std::move(book));
+        });
 
     if (!stopping_)
     {
@@ -712,7 +734,6 @@ ReportingETL::ReportingETL(
     , flatMapBackend_(Backend::makeBackend(config))
     , loadBalancer_(
           config.at("etl_sources").as_array(),
-          *flatMapBackend_,
           networkValidatedLedgers_,
           ioc)
 {
