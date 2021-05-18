@@ -56,6 +56,7 @@ include(Postgres)
 
 target_sources(reporting PRIVATE
     reporting/ETLSource.cpp
+    reporting/FakeETLLoadBalancer.cpp
     reporting/CassandraBackend.cpp
     reporting/PostgresBackend.cpp
     reporting/BackendIndexer.cpp

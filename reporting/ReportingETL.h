@@ -27,7 +27,7 @@
 #include <boost/beast/websocket.hpp>
 #include <reporting/BackendInterface.h>
 #include <reporting/ETLHelpers.h>
-#include <reporting/ETLSource.h>
+#include <reporting/ETLLoadBalancer.h>
 #include <reporting/Pg.h>
 
 #include "org/xrpl/rpc/v1/xrp_ledger.grpc.pb.h"
@@ -83,7 +83,7 @@ private:
     /// Mechanism for communicating with ETL sources. ETLLoadBalancer wraps an
     /// arbitrary number of ETL sources and load balances ETL requests across
     /// those sources.
-    ETLLoadBalancer loadBalancer_;
+    std::unique_ptr<ETLLoadBalancer> loadBalancer_;
 
     /// Mechanism for detecting when the network has validated a new ledger.
     /// This class provides a way to wait for a specific ledger to be validated
@@ -303,7 +303,7 @@ public:
 
         stopping_ = false;
 
-        loadBalancer_.start();
+        loadBalancer_->start();
         doWork();
     }
 
@@ -315,7 +315,7 @@ public:
         BOOST_LOG_TRIVIAL(debug) << "Stopping Reporting ETL";
         stopping_ = true;
         networkValidatedLedgers_.stop();
-        loadBalancer_.stop();
+        loadBalancer_->stop();
 
         BOOST_LOG_TRIVIAL(debug) << "Stopped loadBalancer";
         if (worker_.joinable())
@@ -327,7 +327,7 @@ public:
     ETLLoadBalancer&
     getETLLoadBalancer()
     {
-        return loadBalancer_;
+        return *loadBalancer_;
     }
 
     BackendInterface&

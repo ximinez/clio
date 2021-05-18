@@ -397,7 +397,7 @@ ETLSource::fetchLedger(uint32_t ledgerSequence, bool getObjects)
     }
     return {status, std::move(response)};
 }
-ETLLoadBalancer::ETLLoadBalancer(
+ETLLoadBalancerImpl::ETLLoadBalancerImpl(
     boost::json::array const& config,
     NetworkValidatedLedgers& nwvl,
     boost::asio::io_context& ioContext)
@@ -413,7 +413,7 @@ ETLLoadBalancer::ETLLoadBalancer(
 }
 
 std::optional<org::xrpl::rpc::v1::GetLedgerResponse>
-ETLLoadBalancer::fetchLedger(uint32_t ledgerSequence, bool getObjects)
+ETLLoadBalancerImpl::fetchLedger(uint32_t ledgerSequence, bool getObjects)
 {
     org::xrpl::rpc::v1::GetLedgerResponse response;
     bool success = execute(
@@ -448,7 +448,7 @@ ETLLoadBalancer::fetchLedger(uint32_t ledgerSequence, bool getObjects)
 
 /*
 std::unique_ptr<org::xrpl::rpc::v1::XRPLedgerAPIService::Stub>
-ETLLoadBalancer::getP2pForwardingStub() const
+ETLLoadBalancerImpl::getP2pForwardingStub() const
 {
     if (sources_.size() == 0)
         return nullptr;
@@ -470,7 +470,7 @@ ETLLoadBalancer::getP2pForwardingStub() const
 }
 
 Json::Value
-ETLLoadBalancer::forwardToP2p(RPC::JsonContext& context) const
+ETLLoadBalancerImpl::forwardToP2p(RPC::JsonContext& context) const
 {
     Json::Value res;
     if (sources_.size() == 0)
@@ -604,14 +604,14 @@ ETLSource::forwardToP2p(RPC::JsonContext& context) const
 */
 
 void
-ETLLoadBalancer::start()
+ETLLoadBalancerImpl::start()
 {
     for (auto& source : sources_)
         source->start();
 }
 
 void
-ETLLoadBalancer::stop()
+ETLLoadBalancerImpl::stop()
 {
     for (auto& source : sources_)
         source->stop();

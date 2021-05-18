@@ -20,6 +20,7 @@
 #include <ripple/basics/StringUtilities.h>
 #include <reporting/BackendFactory.h>
 #include <reporting/DBHelpers.h>
+#include <reporting/ETLLoadBalancerFactory.h>
 #include <reporting/ReportingETL.h>
 
 #include <ripple/beast/core/CurrentThreadName.h>
@@ -125,7 +126,7 @@ ReportingETL::loadInitialLedger(uint32_t startingSequence)
     // data and pushes the downloaded data into the writeQueue. asyncWriter
     // consumes from the queue and inserts the data into the Ledger object.
     // Once the below call returns, all data has been pushed into the queue
-    loadBalancer_.loadInitialLedger(
+    loadBalancer_->loadInitialLedger(
         startingSequence, [this, startingSequence](auto& obj) {
             std::optional<ripple::uint256> book;
 
@@ -240,7 +241,7 @@ ReportingETL::fetchLedgerData(uint32_t idx)
         << "Attempting to fetch ledger with sequence = " << idx;
 
     std::optional<org::xrpl::rpc::v1::GetLedgerResponse> response =
-        loadBalancer_.fetchLedger(idx, false);
+        loadBalancer_->fetchLedger(idx, false);
     BOOST_LOG_TRIVIAL(trace) << __func__ << " : "
                              << "GetLedger reply = " << response->DebugString();
     return response;
@@ -254,7 +255,7 @@ ReportingETL::fetchLedgerDataAndDiff(uint32_t idx)
         << "Attempting to fetch ledger with sequence = " << idx;
 
     std::optional<org::xrpl::rpc::v1::GetLedgerResponse> response =
-        loadBalancer_.fetchLedger(idx, true);
+        loadBalancer_->fetchLedger(idx, true);
     BOOST_LOG_TRIVIAL(trace) << __func__ << " : "
                              << "GetLedger reply = " << response->DebugString();
     return response;
@@ -732,10 +733,10 @@ ReportingETL::ReportingETL(
     : publishStrand_(ioc)
     , ioContext_(ioc)
     , flatMapBackend_(Backend::makeBackend(config))
-    , loadBalancer_(
+    , loadBalancer_(makeETLLoadBalancer(
           config.at("etl_sources").as_array(),
           networkValidatedLedgers_,
-          ioc)
+          ioc))
 {
     if (config.contains("start_sequence"))
         startSequence_ = config.at("start_sequence").as_int64();

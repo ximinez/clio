@@ -1,22 +1,3 @@
-//------------------------------------------------------------------------------
-/*
-    This file is part of rippled: https://github.com/ripple/rippled
-    Copyright (c) 2020 Ripple Labs Inc.
-
-    Permission to use, copy, modify, and/or distribute this software for any
-    purpose  with  or without fee is hereby granted, provided that the above
-    copyright notice and this permission notice appear in all copies.
-
-    THE  SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-    WITH  REGARD  TO  THIS  SOFTWARE  INCLUDING  ALL  IMPLIED  WARRANTIES  OF
-    MERCHANTABILITY  AND  FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-    ANY  SPECIAL ,  DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-    WHATSOEVER  RESULTING  FROM  LOSS  OF USE, DATA OR PROFITS, WHETHER IN AN
-    ACTION  OF  CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-*/
-//==============================================================================
-
 #ifndef RIPPLE_APP_REPORTING_ETLSOURCE_H_INCLUDED
 #define RIPPLE_APP_REPORTING_ETLSOURCE_H_INCLUDED
 
@@ -29,6 +10,7 @@
 #include "org/xrpl/rpc/v1/xrp_ledger.grpc.pb.h"
 #include <grpcpp/grpcpp.h>
 #include <reporting/ETLHelpers.h>
+#include <reporting/ETLLoadBalancer.h>
 #include <reporting/FakeETLLoadBalancer.h>
 class AsyncCallData
 {
@@ -319,9 +301,10 @@ public:
     /// @param ledgerSequence sequence of the ledger to download
     /// @param writeQueue queue to push downloaded ledger objects
     /// @return true if the download was successful
-    template <class Func>
     bool
-    loadInitialLedger(uint32_t sequence, Func f)
+    loadInitialLedger(
+        uint32_t sequence,
+        std::function<void(org::xrpl::rpc::v1::RawLedgerObject&)> f)
     {
         if (!stub_)
             return false;
@@ -427,21 +410,14 @@ public:
     getP2pForwardingStub() const;
     */
 };
-/// This class is used to manage connections to transaction processing processes
-/// This class spawns a listener for each etl source, which listens to messages
-/// on the ledgers stream (to keep track of which ledgers have been validated by
-/// the network, and the range of ledgers each etl source has). This class also
-/// allows requests for ledger data to be load balanced across all possible etl
-/// sources.
-class ETLLoadBalancer
+
+class ETLLoadBalancerImpl : public ETLLoadBalancer
 {
 private:
-    //    ReportingETL& etl_;
-
     std::vector<std::unique_ptr<ETLSource>> sources_;
 
 public:
-    ETLLoadBalancer(
+    ETLLoadBalancerImpl(
         boost::json::array const& config,
         NetworkValidatedLedgers& nwvl,
         boost::asio::io_context& ioContext);
@@ -449,9 +425,10 @@ public:
     /// Load the initial ledger, writing data to the queue
     /// @param sequence sequence of ledger to download
     /// @param writeQueue queue to push downloaded data to
-    template <class Func>
     void
-    loadInitialLedger(uint32_t sequence, Func f)
+    loadInitialLedger(
+        uint32_t sequence,
+        std::function<void(org::xrpl::rpc::v1::RawLedgerObject&)> f) override
     {
         execute(
             [this, &sequence, f](auto& source) {
@@ -478,14 +455,14 @@ public:
     /// was found in the database or the server is shutting down, the optional
     /// will be empty
     std::optional<org::xrpl::rpc::v1::GetLedgerResponse>
-    fetchLedger(uint32_t ledgerSequence, bool getObjects);
+    fetchLedger(uint32_t ledgerSequence, bool getObjects) override;
 
     /// Setup all of the ETL sources and subscribe to the necessary streams
     void
-    start();
+    start() override;
 
     void
-    stop();
+    stop() override;
 
     /// Determine whether messages received on the transactions_proposed stream
     /// should be forwarded to subscribing clients. The server subscribes to
