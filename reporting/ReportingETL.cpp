@@ -29,10 +29,10 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <cstdlib>
+#include <google/protobuf/util/json_util.h>
 #include <iostream>
 #include <string>
 #include <variant>
-
 namespace detail {
 /// Convenience function for printing out basic ledger info
 std::string
@@ -52,6 +52,9 @@ ReportingETL::insertTransactions(
     ripple::LedgerInfo const& ledger,
     org::xrpl::rpc::v1::GetLedgerResponse& data)
 {
+    std::string serialized;
+    google::protobuf::util::MessageToJsonString(data, &serialized);
+    std::cout << serialized << std::endl;
     std::vector<AccountTransactionsData> accountTxData;
     for (auto& txn :
          *(data.mutable_transactions_list()->mutable_transactions()))

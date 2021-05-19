@@ -8,6 +8,7 @@
 #include <boost/beast/websocket.hpp>
 
 #include "org/xrpl/rpc/v1/xrp_ledger.grpc.pb.h"
+#include <google/protobuf/util/json_util.h>
 #include <grpcpp/grpcpp.h>
 #include <reporting/ETLHelpers.h>
 #include <reporting/ETLLoadBalancer.h>
@@ -83,6 +84,9 @@ public:
         }
 
         BOOST_LOG_TRIVIAL(trace) << "Writing objects";
+        std::string serialized;
+        google::protobuf::util::MessageToJsonString(*cur_, &serialized);
+        std::cout << serialized << std::endl;
         for (auto& obj : *(cur_->mutable_ledger_objects()->mutable_objects()))
         {
             f(obj);
@@ -421,6 +425,10 @@ public:
         boost::json::array const& config,
         NetworkValidatedLedgers& nwvl,
         boost::asio::io_context& ioContext);
+
+    ~ETLLoadBalancerImpl()
+    {
+    }
 
     /// Load the initial ledger, writing data to the queue
     /// @param sequence sequence of ledger to download
