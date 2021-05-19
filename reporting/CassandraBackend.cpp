@@ -1513,7 +1513,7 @@ CassandraBackend::open(bool readOnly)
               << " ( book blob, sequence bigint, key blob, PRIMARY KEY "
                  "((book, sequence), key)) WITH CLUSTERING ORDER BY (key "
                  "ASC)"
-                 " WITH default_time_to_live = "
+                 " AND default_time_to_live = "
               << booksTtl;
         if (!executeSimpleStatement(query.str()))
             continue;
