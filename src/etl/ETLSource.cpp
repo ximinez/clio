@@ -28,7 +28,6 @@ ETLSourceImpl<Derived>::ETLSourceImpl(
     , subscriptions_(subscriptions)
     , balancer_(balancer)
 {
-
     if (config.contains("ip"))
     {
         auto ipJs = config.at("ip").as_string();
@@ -72,13 +71,13 @@ ETLSourceImpl<Derived>::reconnect(boost::beast::error_code ec)
     // when the timer is cancelled. connection_refused will occur repeatedly
     std::string err = ec.message();
     // if we cannot connect to the transaction processing process
-    if (ec.category() == boost::asio::error::get_ssl_category()) {
-        err = std::string(" (")
-                +boost::lexical_cast<std::string>(ERR_GET_LIB(ec.value()))+","
-                +boost::lexical_cast<std::string>(ERR_GET_FUNC(ec.value()))+","
-                +boost::lexical_cast<std::string>(ERR_GET_REASON(ec.value()))+") "
-        ;
-        //ERR_PACK /* crypto/err/err.h */
+    if (ec.category() == boost::asio::error::get_ssl_category())
+    {
+        err = std::string(" (") +
+            boost::lexical_cast<std::string>(ERR_GET_LIB(ec.value())) + "," +
+            boost::lexical_cast<std::string>(ERR_GET_FUNC(ec.value())) + "," +
+            boost::lexical_cast<std::string>(ERR_GET_REASON(ec.value())) + ") ";
+        // ERR_PACK /* crypto/err/err.h */
         char buf[128];
         ::ERR_error_string_n(ec.value(), buf, sizeof(buf));
         err += buf;
@@ -174,20 +173,18 @@ SslETLSource::close(bool startAgain)
                     {
                         ws_ = std::make_unique<boost::beast::websocket::stream<
                             boost::beast::ssl_stream<
-                            boost::beast::tcp_stream>>>(
+                                boost::beast::tcp_stream>>>(
                             boost::asio::make_strand(ioc_), *sslCtx_);
-                        
+
                         run();
                     }
-
                 });
         }
         else if (startAgain)
         {
             ws_ = std::make_unique<boost::beast::websocket::stream<
-                            boost::beast::ssl_stream<
-                            boost::beast::tcp_stream>>>(
-                            boost::asio::make_strand(ioc_), *sslCtx_);
+                boost::beast::ssl_stream<boost::beast::tcp_stream>>>(
+                boost::asio::make_strand(ioc_), *sslCtx_);
 
             run();
         }
@@ -209,10 +206,12 @@ ETLSourceImpl<Derived>::onResolve(
     }
     else
     {
-        boost::beast::get_lowest_layer(derived().ws()).expires_after(
-            std::chrono::seconds(30));
-        boost::beast::get_lowest_layer(derived().ws()).async_connect(
-            results, [this](auto ec, auto ep) { derived().onConnect(ec, ep); });
+        boost::beast::get_lowest_layer(derived().ws())
+            .expires_after(std::chrono::seconds(30));
+        boost::beast::get_lowest_layer(derived().ws())
+            .async_connect(results, [this](auto ec, auto ep) {
+                derived().onConnect(ec, ep);
+            });
     }
 }
 
@@ -241,20 +240,22 @@ PlainETLSource::onConnect(
                 boost::beast::role_type::client));
 
         // Set a decorator to change the User-Agent of the handshake
-        derived().ws().set_option(boost::beast::websocket::stream_base::decorator(
-            [](boost::beast::websocket::request_type& req) {
-                req.set(
-                    boost::beast::http::field::user_agent,
-                    std::string(BOOST_BEAST_VERSION_STRING) +
-                        " websocket-client-async");
-            }));
+        derived().ws().set_option(
+            boost::beast::websocket::stream_base::decorator(
+                [](boost::beast::websocket::request_type& req) {
+                    req.set(
+                        boost::beast::http::field::user_agent,
+                        std::string(BOOST_BEAST_VERSION_STRING) +
+                            " websocket-client-async");
+                }));
 
         // Update the host_ string. This will provide the value of the
         // Host HTTP header during the WebSocket handshake.
         // See https://tools.ietf.org/html/rfc7230#section-5.4
         auto host = ip_ + ':' + std::to_string(endpoint.port());
         // Perform the websocket handshake
-        derived().ws().async_handshake(host, "/", [this](auto ec) { onHandshake(ec); });
+        derived().ws().async_handshake(
+            host, "/", [this](auto ec) { onHandshake(ec); });
     }
 }
 
@@ -283,13 +284,14 @@ SslETLSource::onConnect(
                 boost::beast::role_type::client));
 
         // Set a decorator to change the User-Agent of the handshake
-        derived().ws().set_option(boost::beast::websocket::stream_base::decorator(
-            [](boost::beast::websocket::request_type& req) {
-                req.set(
-                    boost::beast::http::field::user_agent,
-                    std::string(BOOST_BEAST_VERSION_STRING) +
-                        " websocket-client-async");
-            }));
+        derived().ws().set_option(
+            boost::beast::websocket::stream_base::decorator(
+                [](boost::beast::websocket::request_type& req) {
+                    req.set(
+                        boost::beast::http::field::user_agent,
+                        std::string(BOOST_BEAST_VERSION_STRING) +
+                            " websocket-client-async");
+                }));
 
         // Update the host_ string. This will provide the value of the
         // Host HTTP header during the WebSocket handshake.
@@ -339,15 +341,17 @@ ETLSourceImpl<Derived>::onHandshake(boost::beast::error_code ec)
         std::string s = boost::json::serialize(jv);
         BOOST_LOG_TRIVIAL(trace) << "Sending subscribe stream message";
         // Send the message
-        derived().ws().async_write(boost::asio::buffer(s), [this](auto ec, size_t size) {
-            onWrite(ec, size);
-        });
+        derived().ws().async_write(
+            boost::asio::buffer(s),
+            [this](auto ec, size_t size) { onWrite(ec, size); });
     }
 }
 
 template <class Derived>
 void
-ETLSourceImpl<Derived>::onWrite(boost::beast::error_code ec, size_t bytesWritten)
+ETLSourceImpl<Derived>::onWrite(
+    boost::beast::error_code ec,
+    size_t bytesWritten)
 {
     BOOST_LOG_TRIVIAL(trace)
         << __func__ << " : ec = " << ec << " - " << toString();
@@ -382,7 +386,7 @@ ETLSourceImpl<Derived>::onRead(boost::beast::error_code ec, size_t size)
 
         BOOST_LOG_TRIVIAL(trace)
             << __func__ << " : calling async_read - " << toString();
-         derived().ws().async_read(
+        derived().ws().async_read(
             readBuffer_, [this](auto ec, size_t size) { onRead(ec, size); });
     }
 }
@@ -807,7 +811,8 @@ ETLSourceImpl<Derived>::getRippledForwardingStub() const
 
 template <class Derived>
 std::optional<boost::json::object>
-ETLSourceImpl<Derived>::forwardToRippled(boost::json::object const& request) const
+ETLSourceImpl<Derived>::forwardToRippled(
+    boost::json::object const& request) const
 {
     BOOST_LOG_TRIVIAL(debug) << "Attempting to forward request to tx. "
                              << "request = " << boost::json::serialize(request);

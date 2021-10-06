@@ -146,7 +146,7 @@ class Listener
         Listener<PlainSession, SslSession>>::shared_from_this;
 
     net::io_context& ioc_;
-    std::optional<std::reference_wrapper<ssl::context>>  ctx_;
+    std::optional<std::reference_wrapper<ssl::context>> ctx_;
     tcp::acceptor acceptor_;
     std::shared_ptr<BackendInterface> backend_;
     std::shared_ptr<SubscriptionManager> subscriptions_;
