@@ -22,6 +22,10 @@ file (TO_CMAKE_PATH "${BOOST_ROOT}" BOOST_ROOT)
 
 FIND_PACKAGE( Boost 1.75 COMPONENTS filesystem log_setup log thread system REQUIRED )
 message("Boost libraries: ${Boost_LIBRARIES}")
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps")
+include(NIH)
+
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -39,10 +43,10 @@ add_executable (clio_tests
 )
 add_library(clio)
 include_directories(src)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 include(ExternalProject)
 message("Current binary dir: ${CMAKE_CURRENT_BINARY_DIR}")
 message("Module path: ${CMAKE_MODULE_PATH}")
+
 FetchContent_Declare(rippled
   GIT_REPOSITORY https://github.com/cjcobb23/rippled.git
   GIT_TAG clio
