@@ -478,7 +478,6 @@ PgPool::PgPool(boost::json::object const& config)
 
     if (config.contains("max_connections"))
         config_.max_connections = config.at("max_connections").as_uint64();
-    std::size_t timeout;
     if (config.contains("timeout"))
         config_.timeout =
             std::chrono::seconds(config.at("timeout").as_uint64());
@@ -608,7 +607,7 @@ make_PgPool(boost::json::object const& config)
         ret->setup();
         return ret;
     }
-    catch (std::runtime_error& e)
+    catch (std::runtime_error&)
     {
         boost::json::object configCopy = config;
         configCopy["database"] = "postgres";

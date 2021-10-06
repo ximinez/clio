@@ -222,8 +222,8 @@ PostgresBackend::hardFetchLedgerRange() const
     BOOST_LOG_TRIVIAL(debug) << "range is = " << res;
     try
     {
-        size_t minVal = 0;
-        size_t maxVal = 0;
+        uint32_t minVal = 0;
+        unit32_t maxVal = 0;
         if (res == "empty" || res == "error" || res.empty())
             return {};
         else if (size_t delim = res.find('-'); delim != std::string::npos)
@@ -285,8 +285,8 @@ PostgresBackend::fetchTransaction(ripple::uint256 const& hash) const
         return {
             {res.asUnHexedBlob(0, 0),
              res.asUnHexedBlob(0, 1),
-             res.asBigInt(0, 2),
-             res.asBigInt(0, 3)}};
+             safe_cast<uint32_t>(res.asBigInt(0, 2)),
+             safe_cast<uint32_t>(res.asBigInt(0, 3))}};
     }
 
     return {};

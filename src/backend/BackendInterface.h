@@ -38,7 +38,11 @@ struct TransactionAndMetadata
     uint32_t ledgerSequence;
     uint32_t date;
     bool
-    operator==(const TransactionAndMetadata&) const = default;
+    operator==(const TransactionAndMetadata& rhs) const
+    {
+        return transaction == rhs.transaction && metadata == rhs.metadata &&
+            ledgerSequence == rhs.ledgerSequence && date == rhs.date;
+    }
 };
 
 struct AccountTransactionsCursor
