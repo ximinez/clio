@@ -1,4 +1,6 @@
-find_library(cassandra NAMES cassandra)
+# If the library is installed manually, include the location in the
+# CMAKE_PREFIX_PATH or CMAKE_LIBRARY_PATH command line variables.
+find_library(cassandra NAMES cassandra cassandra.lib cassandra.dll)
 if(NOT cassandra)
 
     message("System installed Cassandra cpp driver not found. Will build")
