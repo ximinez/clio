@@ -212,7 +212,7 @@ ReportingETL::publishLedger(
                 return true;
             }
         }
-        catch (Backend::DatabaseTimeout const& e)
+        catch (Backend::DatabaseTimeout const&)
         {
             continue;
         }

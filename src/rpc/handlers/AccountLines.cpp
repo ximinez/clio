@@ -41,7 +41,7 @@ addLine(
     auto lineQualityIn = viewLowest ? lowQualityIn : highQualityIn;
     auto lineQualityOut = viewLowest ? lowQualityOut : highQualityOut;
 
-    if (peerAccount and peerAccount != lineAccountIDPeer)
+    if (peerAccount && peerAccount != lineAccountIDPeer)
         return;
 
     if (!viewLowest)

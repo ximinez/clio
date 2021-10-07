@@ -69,7 +69,7 @@ BackendIndexer::doKeysRepair(
                 return;
             }
         }
-        catch (DatabaseTimeout const& e)
+        catch (DatabaseTimeout const&)
         {
             BOOST_LOG_TRIVIAL(warning)
                 << __func__ << " Database timeout fetching keys";
@@ -169,7 +169,7 @@ BackendIndexer::writeKeyFlagLedger(
             if (!cursor)
                 break;
         }
-        catch (DatabaseTimeout const& e)
+        catch (DatabaseTimeout const&)
         {
             BOOST_LOG_TRIVIAL(warning)
                 << __func__ << " Database timeout fetching keys";

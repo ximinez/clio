@@ -220,7 +220,7 @@ SubscriptionManager::pubTransaction(
                     ripple::Book book{
                         data->getFieldAmount(ripple::sfTakerGets).issue(),
                         data->getFieldAmount(ripple::sfTakerPays).issue()};
-                    if (!alreadySent.contains(book))
+                    if (alreadySent.find(book) == alreadySent.end())
                     {
                         sendAll(pubMsg, bookSubscribers_[book]);
                         alreadySent.insert(book);

@@ -1,3 +1,4 @@
+#include <boost/json/value_to.hpp>
 #include <backend/BackendInterface.h>
 #include <backend/Pg.h>
 #include <rpc/RPCHelpers.h>
@@ -52,6 +53,7 @@ doAccountTx(Context const& context)
                 return Status{
                     Error::rpcINVALID_PARAMS, "transactionIndexNotInt"};
 
+            using namespace boost::json;
             transactionIndex = value_to<std::uint32_t>(obj.at("seq"));
         }
 
@@ -61,6 +63,7 @@ doAccountTx(Context const& context)
             if (!obj.at("ledger").is_int64())
                 return Status{Error::rpcINVALID_PARAMS, "ledgerIndexNotInt"};
 
+            using namespace boost::json;
             ledgerIndex = value_to<std::uint32_t>(obj.at("ledger"));
         }
 
@@ -76,6 +79,7 @@ doAccountTx(Context const& context)
         if (!request.at("ledger_index_min").is_int64())
             return Status{Error::rpcINVALID_PARAMS, "ledgerSeqMinNotNumber"};
 
+        using namespace boost::json;
         minIndex = value_to<std::uint32_t>(request.at("ledger_index_min"));
         if (forward && !cursor)
             cursor = {minIndex, 0};
@@ -87,6 +91,7 @@ doAccountTx(Context const& context)
         if (!request.at("ledger_index_max").is_int64())
             return Status{Error::rpcINVALID_PARAMS, "ledgerSeqMaxNotNumber"};
 
+        using namespace boost::json;
         maxIndex = value_to<std::uint32_t>(request.at("ledger_index_max"));
 
         if (minIndex > maxIndex)
@@ -99,6 +104,7 @@ doAccountTx(Context const& context)
         if (!request.at("ledger_index").is_int64())
             return Status{Error::rpcINVALID_PARAMS, "ledgerIndexNotNumber"};
 
+        using namespace boost::json;
         auto ledgerIndex = value_to<uint32_t>(request.at("ledger_index"));
         maxIndex = minIndex = ledgerIndex;
     }

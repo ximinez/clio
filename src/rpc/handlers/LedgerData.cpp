@@ -1,6 +1,7 @@
 #include <ripple/app/ledger/LedgerToJson.h>
 #include <ripple/protocol/STLedgerEntry.h>
 #include <boost/json.hpp>
+#include <boost/json/value_to.hpp>
 
 #include <backend/BackendInterface.h>
 #include <rpc/RPCHelpers.h>
@@ -41,6 +42,7 @@ doLedgerData(Context const& context)
         if (!request.at("limit").is_int64())
             return Status{Error::rpcINVALID_PARAMS, "limitNotInteger"};
 
+        using namespace boost::json;
         limit = value_to<int>(request.at("limit"));
     }
 

@@ -133,7 +133,7 @@ protected:
 public:
     ~ETLSourceImpl()
     {
-        close(false);
+        derived().close(false);
     }
 
     bool

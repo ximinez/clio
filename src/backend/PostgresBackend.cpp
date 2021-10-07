@@ -1,3 +1,4 @@
+#include <ripple/basics/safe_cast.h>
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
 #include <backend/PostgresBackend.h>
@@ -223,7 +224,7 @@ PostgresBackend::hardFetchLedgerRange() const
     try
     {
         uint32_t minVal = 0;
-        unit32_t maxVal = 0;
+        uint32_t maxVal = 0;
         if (res == "empty" || res == "error" || res.empty())
             return {};
         else if (size_t delim = res.find('-'); delim != std::string::npos)
@@ -282,11 +283,12 @@ PostgresBackend::fetchTransaction(ripple::uint256 const& hash) const
     auto res = pgQuery(sql.str().data());
     if (checkResult(res, 4))
     {
+        using namespace ripple;
         return {
             {res.asUnHexedBlob(0, 0),
              res.asUnHexedBlob(0, 1),
-             safe_cast<uint32_t>(res.asBigInt(0, 2)),
-             safe_cast<uint32_t>(res.asBigInt(0, 3))}};
+             unsafe_cast<uint32_t>(res.asBigInt(0, 2)),
+             unsafe_cast<uint32_t>(res.asBigInt(0, 3))}};
     }
 
     return {};
@@ -306,11 +308,12 @@ PostgresBackend::fetchAllTransactionsInLedger(uint32_t ledgerSequence) const
         std::vector<TransactionAndMetadata> txns;
         for (size_t i = 0; i < numRows; ++i)
         {
+            using namespace ripple;
             txns.push_back(
                 {res.asUnHexedBlob(i, 0),
                  res.asUnHexedBlob(i, 1),
-                 res.asBigInt(i, 2),
-                 res.asBigInt(i, 3)});
+                 unsafe_cast<uint32_t>(res.asBigInt(i, 2)),
+                 unsafe_cast<uint32_t>(res.asBigInt(i, 3))});
         }
         return txns;
     }
@@ -422,11 +425,12 @@ PostgresBackend::fetchTransactions(
                     auto res = pgQuery(sql.str().data());
                     if (size_t numRows = checkResult(res, 4))
                     {
+                        using namespace ripple;
                         results[i] = {
                             res.asUnHexedBlob(0, 0),
                             res.asUnHexedBlob(0, 1),
-                            res.asBigInt(0, 2),
-                            res.asBigInt(0, 3)};
+                            unsafe_cast<uint32_t>(res.asBigInt(0, 2)),
+                            unsafe_cast<uint32_t>(res.asBigInt(0, 3))};
                     }
                     if (--numRemaining == 0)
                     {
@@ -469,12 +473,13 @@ PostgresBackend::fetchTransactions(
             << std::to_string(duration);
         if (size_t numRows = checkResult(res, 3))
         {
+            using namespace ripple;
             for (size_t i = 0; i < numRows; ++i)
                 results.push_back(
                     {res.asUnHexedBlob(i, 0),
                      res.asUnHexedBlob(i, 1),
-                     res.asBigInt(i, 2),
-                     res.asBigInt(i, 3)});
+                     unsafe_cast<uint32_t>(res.asBigInt(i, 2)),
+                     unsafe_cast<uint32_t>(res.asBigInt(i, 3))});
         }
     }
     return results;
@@ -595,12 +600,15 @@ PostgresBackend::fetchAccountTransactions(
         }
         if (responseObj.contains("cursor"))
         {
+            using namespace ripple;
             return {
                 fetchTransactions(hashes),
-                {{responseObj.at("cursor").at("ledger_sequence").as_int64(),
-                  responseObj.at("cursor")
-                      .at("transaction_index")
-                      .as_int64()}}};
+                {{unsafe_cast<uint32_t>(responseObj.at("cursor")
+                                            .at("ledger_sequence")
+                                            .as_uint64()),
+                  unsafe_cast<uint32_t>(responseObj.at("cursor")
+                                            .at("transaction_index")
+                                            .as_uint64())}}};
         }
         return {fetchTransactions(hashes), {}};
     }
@@ -772,7 +780,7 @@ PostgresBackend::doOnlineDelete(uint32_t numLedgersToKeep) const
             if (!cursor)
                 break;
         }
-        catch (DatabaseTimeout const& e)
+        catch (DatabaseTimeout const&)
         {
             BOOST_LOG_TRIVIAL(warning)
                 << __func__ << " Database timeout fetching keys";
