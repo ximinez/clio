@@ -161,5 +161,5 @@ else()
 
     find_path(cassandra_includes NAMES cassandra.h REQUIRED)
     target_link_libraries (clio PUBLIC ${cassandra})
-    target_include_directories(clio INTERFACE ${cassandra_includes})
+    target_include_directories(clio PUBLIC ${cassandra_includes})
 endif()
