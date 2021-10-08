@@ -155,12 +155,12 @@ CassandraBackend::doWriteLedgerObject(
         this,
         std::move(std::make_tuple(std::move(key), seq, std::move(blob))),
         [this](auto& params) {
-            auto& [key, sequence, blob] = params.data;
+            auto& [pkey, sequence, pblob] = params.data;
 
             CassandraStatement statement{insertObject_};
-            statement.bindNextBytes(key);
+            statement.bindNextBytes(pkey);
             statement.bindNextInt(sequence);
-            statement.bindNextBytes(blob);
+            statement.bindNextBytes(pblob);
             return statement;
         });
 }
@@ -174,10 +174,10 @@ CassandraBackend::writeLedger(
         this,
         std::move(std::make_tuple(ledgerInfo.seq, std::move(header))),
         [this](auto& params) {
-            auto& [sequence, header] = params.data;
+            auto& [psequence, pheader] = params.data;
             CassandraStatement statement{insertLedgerHeader_};
-            statement.bindNextInt(sequence);
-            statement.bindNextBytes(header);
+            statement.bindNextInt(psequence);
+            statement.bindNextBytes(pheader);
             return statement;
         });
     makeAndExecuteAsyncWrite(
@@ -210,8 +210,8 @@ CassandraBackend::writeAccountTransactions(
                     record.txHash)),
                 [this](auto& params) {
                     CassandraStatement statement(insertAccountTx_);
-                    auto& [account, lgrSeq, txnIdx, hash] = params.data;
-                    statement.bindNextBytes(account);
+                    auto& [paccount, lgrSeq, txnIdx, hash] = params.data;
+                    statement.bindNextBytes(paccount);
                     uint32_t index = lgrSeq >> 20 << 20;
                     statement.bindNextUInt(index);
 
@@ -250,12 +250,13 @@ CassandraBackend::writeTransaction(
             std::move(metadata))),
         [this](auto& params) {
             CassandraStatement statement{insertTransaction_};
-            auto& [hash, sequence, date, transaction, metadata] = params.data;
-            statement.bindNextBytes(hash);
+            auto& [phash, sequence, pdate, ptransaction, pmetadata] =
+                params.data;
+            statement.bindNextBytes(phash);
             statement.bindNextInt(sequence);
-            statement.bindNextInt(date);
-            statement.bindNextBytes(transaction);
-            statement.bindNextBytes(metadata);
+            statement.bindNextInt(pdate);
+            statement.bindNextBytes(ptransaction);
+            statement.bindNextBytes(pmetadata);
             return statement;
         });
 }
@@ -767,7 +768,7 @@ CassandraBackend::doOnlineDelete(uint32_t numLedgersToKeep) const
             if (!cursor)
                 break;
         }
-        catch (DatabaseTimeout const& e)
+        catch (DatabaseTimeout const&)
         {
             BOOST_LOG_TRIVIAL(warning)
                 << __func__ << " Database timeout fetching keys";
@@ -999,7 +1000,6 @@ CassandraBackend::open(bool readOnly)
         }
         return true;
     };
-    CassStatement* statement;
     CassFuture* fut;
     bool setupSessionAndTable = false;
     while (!setupSessionAndTable)

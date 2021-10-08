@@ -44,8 +44,10 @@ ETLSourceImpl<Derived>::ETLSourceImpl(
         grpcPort_ = {portjs.c_str(), portjs.size()};
         try
         {
+            using namespace ripple;
             boost::asio::ip::tcp::endpoint endpoint{
-                boost::asio::ip::make_address(ip_), std::stoi(grpcPort_)};
+                boost::asio::ip::make_address(ip_),
+                unsafe_cast<unsigned short>(std::stoi(grpcPort_))};
             std::stringstream ss;
             ss << endpoint;
             stub_ = org::xrpl::rpc::v1::XRPLedgerAPIService::NewStub(
@@ -958,4 +960,3 @@ ETLLoadBalancer::execute(Func f, uint32_t ledgerSequence)
     }
     return true;
 }
-

@@ -20,7 +20,7 @@ if ((NOT DEFINED BOOST_ROOT) AND (DEFINED ENV{BOOST_ROOT}))
 endif ()
 file (TO_CMAKE_PATH "${BOOST_ROOT}" BOOST_ROOT)
 
-FIND_PACKAGE( Boost 1.75 COMPONENTS filesystem log_setup log thread system REQUIRED )
+FIND_PACKAGE( Boost 1.75 COMPONENTS filesystem json log_setup log thread system REQUIRED )
 message("Boost libraries: ${Boost_LIBRARIES}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps")

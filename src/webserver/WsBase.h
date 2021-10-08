@@ -265,7 +265,7 @@ public:
                         result = std::get<boost::json::object>(v);
                     }
                 }
-                catch (Backend::DatabaseTimeout const& t)
+                catch (Backend::DatabaseTimeout const&)
                 {
                     BOOST_LOG_TRIVIAL(error) << __func__ << " Database timeout";
                     return sendError(RPC::Error::rpcNOT_READY);

@@ -112,7 +112,7 @@ handle_request(
         {
             request = boost::json::parse(req.body()).as_object();
         }
-        catch (std::runtime_error const& e)
+        catch (std::runtime_error const&)
         {
             return send(httpResponse(
                 http::status::ok,

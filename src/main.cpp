@@ -1,3 +1,4 @@
+#include <ripple/basics/safe_cast.h>
 #include <boost/asio/dispatch.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/websocket.hpp>
@@ -188,7 +189,7 @@ main(int argc, char* argv[])
 
     // io context to handle all incoming requests, as well as other things
     // This is not the only io context in the application
-    boost::asio::io_context ioc{threads};
+    boost::asio::io_context ioc{ripple::unsafe_cast<int>(threads)};
 
     // Rate limiter, to prevent abuse
     DOSGuard dosGuard{config.value(), ioc};

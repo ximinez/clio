@@ -496,10 +496,10 @@ public:
 inline bool
 isTimeout(CassError rc)
 {
-    if (rc == CASS_ERROR_LIB_NO_HOSTS_AVAILABLE or
-        rc == CASS_ERROR_LIB_REQUEST_TIMED_OUT or
-        rc == CASS_ERROR_SERVER_UNAVAILABLE or
-        rc == CASS_ERROR_SERVER_OVERLOADED or
+    if (rc == CASS_ERROR_LIB_NO_HOSTS_AVAILABLE ||
+        rc == CASS_ERROR_LIB_REQUEST_TIMED_OUT ||
+        rc == CASS_ERROR_SERVER_UNAVAILABLE ||
+        rc == CASS_ERROR_SERVER_OVERLOADED ||
         rc == CASS_ERROR_SERVER_READ_TIMEOUT)
         return true;
     return false;
