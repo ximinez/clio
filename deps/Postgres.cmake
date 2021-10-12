@@ -1,4 +1,11 @@
 
+if(nopostgres)
+  message("Will not attempt to build or use PostgreSQL")
+  target_compile_definitions(clio PRIVATE NO_POSTGRESQL)
+  target_compile_definitions(clio_server PRIVATE NO_POSTGRESQL)
+  target_compile_definitions(clio_tests PRIVATE NO_POSTGRESQL)
+  return()
+endif()
 
 find_package(PostgreSQL)
 

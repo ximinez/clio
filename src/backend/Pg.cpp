@@ -1,3 +1,5 @@
+#if !NO_POSTGRESQL
+
 // Need raw socket manipulation to determine if postgres socket IPv4 or 6.
 #if defined(_WIN32)
 #include <winsock2.h>
@@ -1496,3 +1498,4 @@ getLedger(
     return info;
 }
 
+#endif  // !NO_POSTGRESQL

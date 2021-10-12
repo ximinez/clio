@@ -1,3 +1,5 @@
+#if !NO_POSTGRESQL
+
 #ifndef RIPPLE_APP_REPORTING_POSTGRESBACKEND_H_INCLUDED
 #define RIPPLE_APP_REPORTING_POSTGRESBACKEND_H_INCLUDED
 #include <boost/json.hpp>
@@ -113,3 +115,5 @@ public:
 };
 }  // namespace Backend
 #endif
+
+#endif  // !NO_POSTGRESQL

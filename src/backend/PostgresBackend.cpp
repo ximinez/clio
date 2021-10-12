@@ -1,3 +1,5 @@
+#if !NO_POSTGRESQL
+
 #include <ripple/basics/safe_cast.h>
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
@@ -816,3 +818,5 @@ PostgresBackend::doOnlineDelete(uint32_t numLedgersToKeep) const
 }
 
 }  // namespace Backend
+
+#endif  // !NO_POSTGRESQL

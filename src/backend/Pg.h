@@ -12,7 +12,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <functional>
-#include <libpq-fe.h>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -20,6 +19,10 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#if !NO_POSTGRESQL
+
+#include <libpq-fe.h>
 
 // These postgres structs must be freed only by the postgres API.
 using pg_result_type = std::unique_ptr<PGresult, void (*)(PGresult*)>;
@@ -531,5 +534,7 @@ std::optional<ripple::LedgerInfo>
 getLedger(
     std::variant<std::monostate, ripple::uint256, uint32_t> const& whichLedger,
     std::shared_ptr<PgPool>& pgPool);
+
+#endif  // !NO_POSTGRESQL
 
 #endif  // RIPPLE_CORE_PG_H_INCLUDED

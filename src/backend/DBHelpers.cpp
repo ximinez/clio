@@ -2,6 +2,8 @@
 #include <backend/DBHelpers.h>
 #include <memory>
 
+#if !NO_POSTGRESQL
+
 static bool
 writeToLedgersDB(ripple::LedgerInfo const& info, PgQuery& pgQuery)
 {
@@ -149,3 +151,5 @@ writeToPostgres(
     }
 }
 */
+
+#endif !NO_POSTGRESQL

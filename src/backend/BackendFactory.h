@@ -30,11 +30,13 @@ make_Backend(boost::json::object const& config)
         backend =
             std::make_shared<CassandraBackend>(dbConfig.at(type).as_object());
     }
+#if !NO_POSTGRESQL
     else if (boost::iequals(type, "postgres"))
     {
         backend =
             std::make_shared<PostgresBackend>(dbConfig.at(type).as_object());
     }
+#endif  // !NO_POSTGRESQL
 
     if (!backend)
         throw std::runtime_error("Invalid database type");
